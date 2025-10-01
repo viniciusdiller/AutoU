@@ -411,6 +411,7 @@ button[type="submit"]:hover {
 #history {
   flex: 1;
   min-width: 300px;
+  max-height: 800px;
   background: var(--card-background);
   padding: 2.5rem 2rem;
   border-radius: 16px;
@@ -418,6 +419,8 @@ button[type="submit"]:hover {
   border: 1px solid #f0f0f0;
   margin-top: 0;
   border-top: none;
+    display: flex;
+  flex-direction: column;
 }
 
 #history h2 {
@@ -435,6 +438,8 @@ button[type="submit"]:hover {
   max-height: calc(100vh - 150px);
   overflow-y: auto;
   padding-right: 10px;
+  flex-grow: 1;  /* Faz a lista ocupar o espaço vertical disponível */
+  min-height: 0;
 }
 
 .history-item {

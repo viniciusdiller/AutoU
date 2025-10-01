@@ -69,8 +69,29 @@ function processAndRenderCharts(data) {
   );
   renderTopicsList(sortedTopics);
 
-  renderSentimentOverTimeChart(data.sentiments_over_time);
-  renderClassificationOverTimeChart(data.classifications_over_time);
+  let sentimentsOverTime = data.sentiments_over_time;
+  let classificationsOverTime = data.classifications_over_time;
+
+  if (!sentimentsOverTime || !classificationsOverTime) {
+    sentimentsOverTime = {};
+    classificationsOverTime = {};
+    allData.forEach((item) => {
+      try {
+        const dateStr = new Date(item.created_at).toISOString().split("T")[0];
+        if (!sentimentsOverTime[dateStr]) sentimentsOverTime[dateStr] = {};
+        if (!classificationsOverTime[dateStr])
+          classificationsOverTime[dateStr] = {};
+        const sentiment = item.sentiment || "Neutro";
+        sentimentsOverTime[dateStr][sentiment] =
+          (sentimentsOverTime[dateStr][sentiment] || 0) + 1;
+        const classification = item.classification || "Desconhecido";
+        classificationsOverTime[dateStr][classification] =
+          (classificationsOverTime[dateStr][classification] || 0) + 1;
+      } catch (e) {}
+    });
+  }
+  renderSentimentOverTimeChart(sentimentsOverTime);
+  renderClassificationOverTimeChart(classificationsOverTime);
 }
 
 function renderClassificationChart(counts) {
