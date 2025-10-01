@@ -2,7 +2,7 @@
 
 Uma aplicação web inteligente construída com **Flask** e **Google Gemini** para classificar e-mails, extrair insights e sugerir respostas automaticamente, otimizando a triagem e a produtividade de equipes.
 
-**🔗 Link para a aplicação:** [**Acesse a demonstração aqui!**](https://projeto-auto-u-seven.vercel.app/) 
+**🔗 Link para a aplicação:** [**Acesse a demonstração aqui!**](https://autou-five.vercel.app/)  
 
 ![Demonstração da Interface](./assets/demo.gif)
 
@@ -92,6 +92,7 @@ Na versão hospedada na Vercel, o histórico é **temporário** e será reinicia
 Esta é uma característica comum de plataformas *serverless* e a solução foi projetada para ser compatível com este ambiente de demonstração. Para uma aplicação em produção, a abordagem seria utilizar um serviço de banco de dados persistente (como Vercel Postgres, Neon, etc.).
 
 ---
+
 
 
 
