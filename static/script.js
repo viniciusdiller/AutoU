@@ -330,8 +330,11 @@ function displayHistory(history) {
   }
 
   historyList.innerHTML = history
-    .map(
-      (item) => `
+    .map((item) => {
+      // Garante que o tópico chave (assunto) tenha um valor padrão
+      const keyTopic = item.key_topic || "Assunto não identificado";
+
+      return `
         <div class="history-item">
             <div class="history-header">
                 <div class="history-header-left">
@@ -347,7 +350,12 @@ function displayHistory(history) {
                 </div>
             </div>
             <div class="history-content-wrapper">
-                <p class="history-content">
+                
+                <p class="history-content" style="margin-top: 0.75rem;">
+                    <strong>Assunto:</strong> ${keyTopic}
+                </p>
+
+                <p class="history-content" style="margin-top: 1rem;">
                     <strong>E-mail Analisado:</strong><br>
                     ${item.email_content.replace(/\n/g, "<br>")}
                 </p>
@@ -357,7 +365,7 @@ function displayHistory(history) {
                 </p>
             </div>
         </div>
-    `
-    )
+    `;
+    })
     .join("");
 }

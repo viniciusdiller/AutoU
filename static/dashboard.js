@@ -134,6 +134,11 @@ function renderSentimentOverTimeChart(data) {
           backgroundColor: "rgba(16, 185, 129, 0.1)",
           fill: true,
           tension: 0.3,
+          // --- ALTERAÇÕES AQUI ---
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: "#10b981",
+          // --- FIM DAS ALTERAÇÕES ---
         },
         {
           label: "Negativo",
@@ -142,6 +147,11 @@ function renderSentimentOverTimeChart(data) {
           backgroundColor: "rgba(239, 68, 68, 0.1)",
           fill: true,
           tension: 0.3,
+          // --- ALTERAÇÕES AQUI ---
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: "#ef4444",
+          // --- FIM DAS ALTERAÇÕES ---
         },
         {
           label: "Neutro",
@@ -150,6 +160,11 @@ function renderSentimentOverTimeChart(data) {
           backgroundColor: "rgba(107, 114, 128, 0.1)",
           fill: true,
           tension: 0.3,
+          // --- ALTERAÇÕES AQUI ---
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: "#6b7280",
+          // --- FIM DAS ALTERAÇÕES ---
         },
       ],
     },
@@ -195,6 +210,11 @@ function renderClassificationOverTimeChart(data) {
           backgroundColor: "rgba(59, 130, 246, 0.1)",
           fill: true,
           tension: 0.3,
+          // --- ALTERAÇÕES ADICIONADAS AQUI ---
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: "#3b82f6",
+          // --- FIM DAS ALTERAÇÕES ---
         },
         {
           label: "Improdutivo",
@@ -203,6 +223,11 @@ function renderClassificationOverTimeChart(data) {
           backgroundColor: "rgba(249, 115, 22, 0.1)",
           fill: true,
           tension: 0.3,
+          // --- ALTERAÇÕES ADICIONADAS AQUI ---
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: "#f97316",
+          // --- FIM DAS ALTERAÇÕES ---
         },
       ],
     },

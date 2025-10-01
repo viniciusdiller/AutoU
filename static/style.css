@@ -87,7 +87,7 @@ h1 {
 }
 
 textarea#email-text {
-  width: 100%;
+  width: 95%;
   padding: 1rem;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -642,6 +642,7 @@ background-color: var(--success-color);
     flex: 1; 
     padding: 1.5rem;
     margin-top: 0;
+    margin-bottom: 2rem;
   }
 
   h1 {

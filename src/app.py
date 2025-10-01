@@ -253,7 +253,8 @@ def history():
             'created_at': row.get('created_at', ''),
             'email_snippet': snippet,
             'email_content': email_content,
-            'suggested_response': row.get('suggested_response', 'Nenhuma resposta')
+            'suggested_response': row.get('suggested_response', 'Nenhuma resposta'),
+            'key_topic': row.get('key_topic', 'N/A')
         })
 
     return jsonify(processed_history)
