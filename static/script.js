@@ -13,6 +13,46 @@ const addHistoryItemToLocalStorage = (newItem) => {
   localStorage.setItem("analysisHistory", JSON.stringify(history));
 };
 
+function convertToCSV(data) {
+  const header = [
+    "Data/Hora",
+    "Classificação",
+    "Tópico Chave",
+    "Sentimento",
+    "Conteúdo do E-mail",
+    "Resposta Sugerida",
+  ];
+
+  const rows = data.map((item) => [
+    new Date(item.created_at).toLocaleString("pt-BR"),
+    item.classification || "N/A",
+    item.key_topic || "N/A",
+    item.sentiment || "N/A",
+    `"${(item.email_content || "").replace(/"/g, '""').replace(/\n/g, " ")}"`, // Trata quebras de linha e aspas
+    `"${(item.suggested_response || "")
+      .replace(/"/g, '""')
+      .replace(/\n/g, " ")}"`,
+  ]);
+
+  return [header.join(";"), ...rows.map((row) => row.join(";"))].join("\n");
+}
+
+function downloadCSV(csvString) {
+  const blob = new Blob(["\ufeff", csvString], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+
+  link.setAttribute("href", url);
+  link.setAttribute("download", "historico_analises.csv");
+  link.style.visibility = "hidden";
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 // Função principal que decide de onde carregar o histórico
 async function loadHistory() {
   let historyData = [];
@@ -66,6 +106,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     handleFormSubmit();
+  });
+
+  const exportButton = document.getElementById("export-history-btn");
+  exportButton.addEventListener("click", (event) => {
+    if (IS_VERCEL_ENV) {
+      event.preventDefault(); // Impede o link de navegar
+      const historyData = getHistoryFromLocalStorage();
+      if (historyData.length > 0) {
+        const csv = convertToCSV(historyData);
+        downloadCSV(csv);
+      } else {
+        alert("Não há histórico para exportar.");
+      }
+    }
+    // Se não for Vercel, o link funciona normalmente (comportamento padrão).
   });
 
   emailTextInput.addEventListener("input", () => {

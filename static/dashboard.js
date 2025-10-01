@@ -96,15 +96,29 @@ function processAndRenderCharts(data) {
 
 function renderClassificationChart(counts) {
   const ctx = document.getElementById("classificationChart").getContext("2d");
+  const labels = Object.keys(counts).sort((a, b) => {
+    if (a === "Produtivo") return -1;
+    if (b === "Produtivo") return 1;
+    return a.localeCompare(b);
+  });
+
+  const data = labels.map((label) => counts[label]);
+
+  const colorMap = {
+    Produtivo: "#10b981",
+    Improdutivo: "#6b7280",
+    Desconhecido: "#f59e0b",
+  };
+  const backgroundColors = labels.map((label) => colorMap[label] || "#ef4444");
   new Chart(ctx, {
     type: "pie",
     data: {
-      labels: Object.keys(counts),
+      labels: labels,
       datasets: [
         {
           label: "Classificações",
-          data: Object.values(counts),
-          backgroundColor: ["#10b981", "#6b7280", "#ef4444", "#f59e0b"],
+          data: data,
+          backgroundColor: backgroundColors,
           hoverOffset: 4,
         },
       ],
@@ -155,11 +169,9 @@ function renderSentimentOverTimeChart(data) {
           backgroundColor: "rgba(16, 185, 129, 0.1)",
           fill: true,
           tension: 0.3,
-          // --- ALTERAÇÕES AQUI ---
           pointRadius: 5,
           pointHoverRadius: 7,
           pointBackgroundColor: "#10b981",
-          // --- FIM DAS ALTERAÇÕES ---
         },
         {
           label: "Negativo",
@@ -168,11 +180,9 @@ function renderSentimentOverTimeChart(data) {
           backgroundColor: "rgba(239, 68, 68, 0.1)",
           fill: true,
           tension: 0.3,
-          // --- ALTERAÇÕES AQUI ---
           pointRadius: 5,
           pointHoverRadius: 7,
           pointBackgroundColor: "#ef4444",
-          // --- FIM DAS ALTERAÇÕES ---
         },
         {
           label: "Neutro",
@@ -181,11 +191,9 @@ function renderSentimentOverTimeChart(data) {
           backgroundColor: "rgba(107, 114, 128, 0.1)",
           fill: true,
           tension: 0.3,
-          // --- ALTERAÇÕES AQUI ---
           pointRadius: 5,
           pointHoverRadius: 7,
           pointBackgroundColor: "#6b7280",
-          // --- FIM DAS ALTERAÇÕES ---
         },
       ],
     },
@@ -231,11 +239,9 @@ function renderClassificationOverTimeChart(data) {
           backgroundColor: "rgba(59, 130, 246, 0.1)",
           fill: true,
           tension: 0.3,
-          // --- ALTERAÇÕES ADICIONADAS AQUI ---
           pointRadius: 5,
           pointHoverRadius: 7,
           pointBackgroundColor: "#3b82f6",
-          // --- FIM DAS ALTERAÇÕES ---
         },
         {
           label: "Improdutivo",
@@ -244,11 +250,9 @@ function renderClassificationOverTimeChart(data) {
           backgroundColor: "rgba(249, 115, 22, 0.1)",
           fill: true,
           tension: 0.3,
-          // --- ALTERAÇÕES ADICIONADAS AQUI ---
           pointRadius: 5,
           pointHoverRadius: 7,
           pointBackgroundColor: "#f97316",
-          // --- FIM DAS ALTERAÇÕES ---
         },
       ],
     },
