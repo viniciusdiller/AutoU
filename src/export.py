@@ -5,26 +5,26 @@ from flask import Response
 def export_history_to_csv(data):
     
     if not data:
-        header = ['ID', 'Data/Hora', 'Classificação', 'Pontuação de Confiança', 'Conteúdo do E-mail', 'Resposta Sugerida']
+        header = ['ID', 'Data/Hora', 'Classificação', 'Tópico Chave', 'Sentimento', 'Pontuação de Confiança', 'Conteúdo do E-mail', 'Resposta Sugerida']
         output = StringIO()
         writer = csv.writer(output, delimiter=';')
         writer.writerow(header)
         csv_string = output.getvalue()
 
-        # Adiciona o BOM (\ufeff) para forçar o Excel a usar UTF-8
         return Response(
             '\ufeff' + csv_string,
             mimetype="text/csv",
             headers={
-                "Content-disposition": "attachment; filename=historico_emails.csv"
+                "Content-disposition": "attachment; filename=historico_analises.csv"
             }
         )
-
 
     header_mapping = {
         'id': 'ID',
         'created_at': 'Data/Hora',
         'classification': 'Classificação',
+        'key_topic': 'Tópico Chave',
+        'sentiment': 'Sentimento',
         'confidence_score': 'Pontuação de Confiança',
         'email_content': 'Conteúdo do E-mail',
         'suggested_response': 'Resposta Sugerida'
