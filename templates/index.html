@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analisador de E-mails com IA</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='favicon.jpg') }}"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="main-layout-flex">
+      <div class="container">
+        <!-- Formulário e Resultados -->
+        <div class="header">
+          <svg
+            class="header-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+          <h1>Analisador de E-mails com IA</h1>
+        </div>
+        <p class="subtitle">
+          Cole o texto do e-mail ou faça o upload de um arquivo (.txt ou .pdf)
+          para uma análise inteligente.
+        </p>
+
+        <form id="email-form">
+          <textarea
+            id="email-text"
+            name="email_text"
+            placeholder="Cole o texto do e-mail aqui..."
+            rows="10"
+          ></textarea>
+          <div class="separator"><span>OU</span></div>
+          <div class="file-upload-area">
+            <input
+              type="file"
+              id="file-upload"
+              name="files[]"
+              accept=".txt,.pdf"
+              multiple
+            />
+            <p>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              Arraste e solte um arquivo ou
+              <label for="file-upload" class="file-upload-label"
+                >escolha um arquivo</label
+              >
+            </p>
+          </div>
+          <button type="submit">Analisar E-mail</button>
+        </form>
+
+        <div id="loading-indicator" class="hidden">
+          <div class="spinner"></div>
+          <p>Analisando...</p>
+        </div>
+
+        <!-- Área de Resultados  -->
+        <div id="results-area" class="hidden"></div>
+
+        <!-- Elemento para exibir mensagens de erro -->
+        <div id="error-message-container"></div>
+      </div>
+
+      <!-- 3. Histórico de Análises -->
+      <div id="history">
+        <h2>Histórico de Análises</h2>
+
+        <div class="export-button-wrapper">
+          <a
+            href="{{ url_for('export_history') }}"
+            id="export-history-btn"
+            download
+          >
+            Exportar Histórico (CSV)
+          </a>
+        </div>
+        <div
+          class="dashboard-link-wrapper"
+          style="text-align: center; margin-bottom: 1.5rem"
+        >
+          <a
+            href="{{ url_for('dashboard') }}"
+            id="dashboard-link"
+            style="font-weight: 600; color: var(--primary-color)"
+          >
+            Ver Dashboard de Análise &rarr;
+          </a>
+        </div>
+
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>
