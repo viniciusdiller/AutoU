@@ -76,8 +76,8 @@ Siga os passos abaixo para ter o projeto rodando na sua máquina.
 
 5.  **Execute a aplicação:**
     ```bash
-    # A partir da raiz do projeto
-    flask run
+    cd src/
+    python app.py
     ```
 
 6.  **Acesse no navegador:**
@@ -102,6 +102,7 @@ Na versão hospedada na Vercel, o sistema de arquivos do servidor é temporário
     2.  Ele será **perdido** se você limpar os dados de navegação (cache, cookies, etc.) do seu navegador.
 
 A funcionalidade de **Exportar (CSV)** sempre utilizará os dados do banco de dados do servidor. Portanto, na Vercel, ela exportará apenas as análises feitas na sessão ativa do servidor.
+
 
 
 
