@@ -24,6 +24,11 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
         gap: 2rem;
+        align-items: flex-start;
+      }
+      /* NOVO: Estilo para cards que ocupam a largura total */
+      .full-width-card {
+        grid-column: 1 / -1; /* Ocupa todas as colunas do grid */
       }
       .dashboard-card {
         background: var(--card-background);
@@ -89,10 +94,21 @@
           <h2>Tópicos Mais Comuns</h2>
           <ul id="topics-list"></ul>
         </div>
+
+        <div class="dashboard-card full-width-card">
+          <h2>Análise de Sentimento por Dia</h2>
+          <canvas id="sentimentOverTimeChart"></canvas>
+        </div>
+
+        <div class="dashboard-card full-width-card">
+          <h2>Volume de Análises por Dia</h2>
+          <canvas id="classificationOverTimeChart"></canvas>
+        </div>
       </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
   </body>
 </html>

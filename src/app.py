@@ -7,12 +7,14 @@ import pypdf
 import nltk                                # NOVO: Importa NLTK
 from nltk.corpus import stopwords          # NOVO: Para Stop Words
 from nltk.stem import RSLPStemmer          # NOVO: Para Stemming em Português
-import re 
+import re
+from collections import defaultdict
+from datetime import datetime
 
 # Lógica de importação para suportar o ambiente serverless (Vercel)
 try:
     from database import initialize_db, insert_classification, get_history, get_raw_history_data
-    from export import export_history_to_csv 
+    from export import export_history_to_csv
 except ImportError as e:
     # Cria funções de placeholder se os módulos não forem encontrados, garantindo que o Flask inicie.
     print(f"ATENÇÃO: Falha ao importar módulos customizados: {e}")
@@ -43,7 +45,7 @@ def setup_nltk_data():
             # Baixa os módulos necessários
             nltk.download('stopwords', download_dir=NLTK_DATA_DIR)
             nltk.download('rslp', download_dir=NLTK_DATA_DIR)
-            nltk.download('punkt', download_dir=NLTK_DATA_DIR) 
+            nltk.download('punkt', download_dir=NLTK_DATA_DIR)
             print("Download do NLTK concluído.")
         except Exception as e:
             print(f"Erro ao baixar dados do NLTK: {e}")
@@ -93,7 +95,7 @@ O JSON de saída deve ter a seguinte estrutura:
 - "confidence_score": Um número entre 0.0 e 1.0 indicando a confiança na classificação.
 - "key_topic": Uma palavra ou frase curta resumindo o tópico principal do e-mail (ex.: "Solicitação de Pagamento", "Felicitação").
 - "sentiment": O tom predominante do e-mail ("Positivo", "Negativo" ou "Neutro").
-- "suggested_response": 
+- "suggested_response":
     - Se "Produtivo", sugira uma resposta curta e profissional abordando a solicitação ou dúvida.
     - Se "Improdutivo", sugira uma resposta curta e cordial de agradecimento (ex.: "Obrigado pela informação!").
 
@@ -106,7 +108,7 @@ def preprocess_text_nlp(text):
     """
     # 1. Limpeza básica (converter para minúsculas e remover pontuação)
     text = text.lower()
-    text = re.sub(r'[^a-z0-9\s]', '', text) 
+    text = re.sub(r'[^a-z0-9\s]', '', text)
 
     # 2. Tokenização
     tokens = nltk.word_tokenize(text, language='portuguese')
@@ -119,7 +121,7 @@ def preprocess_text_nlp(text):
     # 4. Stemming (Redução ao radical - RSLP para Português)
     stemmer = RSLPStemmer()
     stemmed_tokens = [stemmer.stem(word) for word in filtered_tokens]
-    
+
     # Retorna o texto pré-processado como uma string, separado por espaço
     return ' '.join(stemmed_tokens)
 
@@ -133,29 +135,29 @@ def index():
 def classify_email():
     """Recebe o e-mail (texto) ou a lista de arquivos, classifica com a IA, salva e retorna os resultados."""
     initialize_db()
-    
+
     if not model:
         return jsonify({'error': 'O modelo de IA não foi inicializado. Verifique a chave da API.'}), 503
 
     files_to_process = []
-    
+
     # 1. Extrai o conteúdo do formulário de texto
     if 'email_text' in request.form and request.form['email_text']:
         email_content = request.form['email_text']
         if email_content.strip():
             files_to_process.append({'content': email_content, 'filename': 'Texto Colado'})
-    
+
     # 2. Pega a lista de arquivos (usando 'files[]' como nome do campo)
     uploaded_files = request.files.getlist('files[]')
-    
+
     # 3. Processa e extrai o conteúdo de cada arquivo
     for file in uploaded_files:
         if file.filename == '':
             continue
-            
+
         file_content = ""
         filename = file.filename
-        
+
         if filename.endswith('.txt'):
             try:
                 file_content = file.read().decode('utf-8')
@@ -178,22 +180,22 @@ def classify_email():
         if file_content.strip():
             files_to_process.append({'content': file_content, 'filename': filename})
 
-    
+
     if not files_to_process:
         # Se nenhum arquivo/texto válido foi encontrado, retorna 400
         return jsonify({'error': 'Nenhum conteúdo válido de e-mail fornecido para análise (texto ou arquivo).'}), 400
 
-    
+
     # 4. Processa cada item (texto ou arquivo) com o modelo Gemini
     all_results = []
     for item in files_to_process:
         if 'error' in item:
             all_results.append(item)
             continue
-            
+
         email_content = item['content']
         filename = item['filename']
-        
+
         try:
             prompt = PROMPT_TEMPLATE.format(email_content=email_content)
             response = model.generate_content(prompt)
@@ -211,21 +213,21 @@ def classify_email():
             classification = result_json.get("classification", "Desconhecido")
             confidence_score = result_json.get("confidence_score", 0.0)
             suggested_response = result_json.get("suggested_response", "Nenhuma resposta")
-            
+
             # CORREÇÃO: Extrai os novos campos do JSON da IA (caindo para N/A se faltar)
             key_topic = result_json.get("key_topic", "N/A")
             sentiment = result_json.get("sentiment", "N/A")
-            
+
             # Garante que confidence_score seja um float
             if not isinstance(confidence_score, (int, float)):
                 try:
                     confidence_score = float(confidence_score)
                 except ValueError:
-                    confidence_score = 0.0 
-                    
+                    confidence_score = 0.0
+
             # Salva no histórico
             insert_classification(classification, confidence_score, key_topic, sentiment, suggested_response, email_content)
-            
+
             # Adiciona o resultado à lista
             result_json['source_filename'] = filename
             all_results.append(result_json)
@@ -242,7 +244,7 @@ def classify_email():
     if len(all_results) == 1 and 'source_filename' in all_results[0]:
         # Se for apenas um item (texto ou 1 arquivo), retorna o objeto único para não quebrar a exibição atual
         return jsonify(all_results[0])
-    
+
     # Retorna a lista completa de resultados (para o front-end processar)
     return jsonify(all_results)
 
@@ -250,17 +252,17 @@ def classify_email():
 def history():
     """Retorna os últimos e-mails classificados."""
     initialize_db()
-    
+
     history_data = get_history()
-    
+
     # Processa os dados para adicionar o snippet para o frontend
     processed_history = []
     for row in history_data:
         email_content = row.get('email_content', '')
         # Os campos key_topic e sentiment já são recuperados pela função get_history
-        
+
         snippet = email_content.strip().replace('\n', ' ')[:150] + '...' if len(email_content.strip()) > 150 else email_content.strip().replace('\n', ' ')
-        
+
         processed_history.append({
             'classification': row.get('classification', 'Desconhecido'),
             'created_at': row.get('created_at', ''),
@@ -268,18 +270,18 @@ def history():
             'email_content': email_content,
             'suggested_response': row.get('suggested_response', 'Nenhuma resposta')
         })
-        
+
     return jsonify(processed_history)
 
 @app.route('/export_history')
 def export_history():
     """Exporta todo o histórico do banco de dados para um arquivo CSV."""
     initialize_db()
-    
+
     try:
         raw_data = get_raw_history_data()
         return export_history_to_csv(raw_data)
-        
+
     except Exception as e:
         print(f"Erro ao exportar histórico: {e}")
         return jsonify({'error': 'Falha ao gerar o arquivo CSV.'}), 500
@@ -293,13 +295,41 @@ def dashboard():
 def dashboard_data():
     """Fornece os dados do histórico em formato JSON para o dashboard."""
     initialize_db()
-    
-    # get_raw_history_data() já busca todos os dados que precisamos
-    history_data = get_raw_history_data() 
-    
-    return jsonify(history_data)
+
+    history_data = get_raw_history_data()
+
+    # --- NOVO: Processamento para gráficos de linha ---
+    sentiments_over_time = defaultdict(lambda: defaultdict(int))
+    classifications_over_time = defaultdict(lambda: defaultdict(int))
+
+    for item in history_data:
+        try:
+            # Converte a data de string ISO para objeto datetime e formata para 'YYYY-MM-DD'
+            date_str = datetime.fromisoformat(item['created_at']).strftime('%Y-%m-%d')
+
+            # Agrega sentimentos
+            if item.get('sentiment') and item['sentiment'] != 'N/A':
+                sentiments_over_time[date_str][item['sentiment']] += 1
+
+            # Agrega classificações
+            if item.get('classification') and item['classification'] != 'Desconhecido':
+                classifications_over_time[date_str][item['classification']] += 1
+
+        except (ValueError, TypeError):
+            # Ignora registros com formato de data inválido
+            continue
+
+    # --- FIM DO NOVO BLOCO ---
+
+    # Retorna todos os dados, incluindo os novos agregados
+    return jsonify({
+        'all_data': history_data,
+        'sentiments_over_time': sentiments_over_time,
+        'classifications_over_time': classifications_over_time
+    })
+
 
 if __name__ == '__main__':
     # Bloco para execução local
-    initialize_db() 
+    initialize_db()
     app.run(debug=True)
