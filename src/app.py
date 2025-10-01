@@ -4,19 +4,18 @@ from flask import Flask, request, jsonify, render_template, Response
 import google.generativeai as genai
 from dotenv import load_dotenv
 import pypdf
-import nltk                                # NOVO: Importa NLTK
-from nltk.corpus import stopwords          # NOVO: Para Stop Words
-from nltk.stem import RSLPStemmer          # NOVO: Para Stemming em Português
+import nltk                                
+from nltk.corpus import stopwords          
+from nltk.stem import RSLPStemmer          
 import re
 from collections import defaultdict
 from datetime import datetime
 
-# Lógica de importação para suportar o ambiente serverless (Vercel)
+
 try:
     from database import initialize_db, insert_classification, get_history, get_raw_history_data
     from export import export_history_to_csv
 except ImportError as e:
-    # Cria funções de placeholder se os módulos não forem encontrados, garantindo que o Flask inicie.
     print(f"ATENÇÃO: Falha ao importar módulos customizados: {e}")
     def initialize_db(): pass
     def insert_classification(*args, **kwargs): pass
@@ -31,18 +30,18 @@ NLTK_DATA_DIR = '/tmp/nltk_data'
 os.makedirs(NLTK_DATA_DIR, exist_ok=True)
 nltk.data.path.append(NLTK_DATA_DIR)
 
-# Tenta fazer o download dos recursos necessários, se não existirem
+
 def setup_nltk_data():
     """Garante que os dados do NLTK necessários para Português estejam em /tmp."""
     try:
-        # Tenta carregar os dados
+       
         stopwords.words('portuguese')
         nltk.data.find('tokenizers/punkt')
         nltk.data.find('corpora/rslp')
     except (LookupError, FileNotFoundError):
         print("Baixando dados do NLTK para /tmp...")
         try:
-            # Baixa os módulos necessários
+        
             nltk.download('stopwords', download_dir=NLTK_DATA_DIR)
             nltk.download('rslp', download_dir=NLTK_DATA_DIR)
             nltk.download('punkt', download_dir=NLTK_DATA_DIR)
@@ -52,17 +51,16 @@ def setup_nltk_data():
 
 setup_nltk_data()
 
-# Ajusta o root_path para encontrar as pastas 'templates' e 'static' no diretório pai,
-# após mover 'app.py' para a pasta 'src/'.
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 app = Flask(__name__, root_path=project_root)
 
-# Configuração da API do Google Generative AI
+
 try:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        # A chave deve ser configurada via Environment Variables (Vercel) ou arquivo .env (local)
+
         raise ValueError("A variável de ambiente GEMINI_API_KEY não foi definida.")
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-2.5-flash-lite')
@@ -70,7 +68,7 @@ except Exception as e:
     print(f"Erro ao configurar a API do Google: {e}")
     model = None
 
-# Template do Prompt para o Modelo de IA
+
 PROMPT_TEMPLATE = """
 Você deve analisar o e-mail fornecido e retornar um objeto JSON seguindo estritamente a estrutura definida abaixo.
 
@@ -106,23 +104,19 @@ def preprocess_text_nlp(text):
     """
     Executa Limpeza, Tokenização, Remoção de Stop Words e Stemming (RSLP) em Português.
     """
-    # 1. Limpeza básica (converter para minúsculas e remover pontuação)
+    
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s]', '', text)
 
-    # 2. Tokenização
+
     tokens = nltk.word_tokenize(text, language='portuguese')
 
-    # 3. Remoção de Stop Words
     stop_words = set(stopwords.words('portuguese'))
-    # Filtra tokens que não estão na lista de stop words e que não são apenas espaços em branco
     filtered_tokens = [word for word in tokens if word not in stop_words and word.strip()]
 
-    # 4. Stemming (Redução ao radical - RSLP para Português)
     stemmer = RSLPStemmer()
     stemmed_tokens = [stemmer.stem(word) for word in filtered_tokens]
 
-    # Retorna o texto pré-processado como uma string, separado por espaço
     return ' '.join(stemmed_tokens)
 
 @app.route('/')
@@ -141,16 +135,13 @@ def classify_email():
 
     files_to_process = []
 
-    # 1. Extrai o conteúdo do formulário de texto
     if 'email_text' in request.form and request.form['email_text']:
         email_content = request.form['email_text']
         if email_content.strip():
             files_to_process.append({'content': email_content, 'filename': 'Texto Colado'})
 
-    # 2. Pega a lista de arquivos (usando 'files[]' como nome do campo)
     uploaded_files = request.files.getlist('files[]')
 
-    # 3. Processa e extrai o conteúdo de cada arquivo
     for file in uploaded_files:
         if file.filename == '':
             continue
@@ -182,11 +173,9 @@ def classify_email():
 
 
     if not files_to_process:
-        # Se nenhum arquivo/texto válido foi encontrado, retorna 400
         return jsonify({'error': 'Nenhum conteúdo válido de e-mail fornecido para análise (texto ou arquivo).'}), 400
 
 
-    # 4. Processa cada item (texto ou arquivo) com o modelo Gemini
     all_results = []
     for item in files_to_process:
         if 'error' in item:
@@ -209,26 +198,21 @@ def classify_email():
                 all_results.append({'error': f'A resposta da IA não estava em um formato JSON válido para: {filename}'})
                 continue
 
-            # Extrai e valida dados
             classification = result_json.get("classification", "Desconhecido")
             confidence_score = result_json.get("confidence_score", 0.0)
             suggested_response = result_json.get("suggested_response", "Nenhuma resposta")
 
-            # CORREÇÃO: Extrai os novos campos do JSON da IA (caindo para N/A se faltar)
             key_topic = result_json.get("key_topic", "N/A")
             sentiment = result_json.get("sentiment", "N/A")
 
-            # Garante que confidence_score seja um float
             if not isinstance(confidence_score, (int, float)):
                 try:
                     confidence_score = float(confidence_score)
                 except ValueError:
                     confidence_score = 0.0
 
-            # Salva no histórico
             insert_classification(classification, confidence_score, key_topic, sentiment, suggested_response, email_content)
 
-            # Adiciona o resultado à lista
             result_json['source_filename'] = filename
             all_results.append(result_json)
 
@@ -240,12 +224,9 @@ def classify_email():
             print(f"Ocorreu um erro inesperado: {e}")
             all_results.append({'error': f"Ocorreu um erro inesperado no servidor para: {filename}"})
 
-    # 5. Retorna a lista de resultados (ou o objeto único se for apenas um)
     if len(all_results) == 1 and 'source_filename' in all_results[0]:
-        # Se for apenas um item (texto ou 1 arquivo), retorna o objeto único para não quebrar a exibição atual
         return jsonify(all_results[0])
 
-    # Retorna a lista completa de resultados (para o front-end processar)
     return jsonify(all_results)
 
 @app.route('/history')
@@ -255,11 +236,9 @@ def history():
 
     history_data = get_history()
 
-    # Processa os dados para adicionar o snippet para o frontend
     processed_history = []
     for row in history_data:
         email_content = row.get('email_content', '')
-        # Os campos key_topic e sentiment já são recuperados pela função get_history
 
         snippet = email_content.strip().replace('\n', ' ')[:150] + '...' if len(email_content.strip()) > 150 else email_content.strip().replace('\n', ' ')
 
@@ -298,30 +277,23 @@ def dashboard_data():
 
     history_data = get_raw_history_data()
 
-    # --- NOVO: Processamento para gráficos de linha ---
     sentiments_over_time = defaultdict(lambda: defaultdict(int))
     classifications_over_time = defaultdict(lambda: defaultdict(int))
 
     for item in history_data:
         try:
-            # Converte a data de string ISO para objeto datetime e formata para 'YYYY-MM-DD'
             date_str = datetime.fromisoformat(item['created_at']).strftime('%Y-%m-%d')
 
-            # Agrega sentimentos
             if item.get('sentiment') and item['sentiment'] != 'N/A':
                 sentiments_over_time[date_str][item['sentiment']] += 1
 
-            # Agrega classificações
             if item.get('classification') and item['classification'] != 'Desconhecido':
                 classifications_over_time[date_str][item['classification']] += 1
 
         except (ValueError, TypeError):
-            # Ignora registros com formato de data inválido
             continue
 
-    # --- FIM DO NOVO BLOCO ---
 
-    # Retorna todos os dados, incluindo os novos agregados
     return jsonify({
         'all_data': history_data,
         'sentiments_over_time': sentiments_over_time,
@@ -330,6 +302,5 @@ def dashboard_data():
 
 
 if __name__ == '__main__':
-    # Bloco para execução local
     initialize_db()
     app.run(debug=True)

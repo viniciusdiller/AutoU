@@ -2,7 +2,7 @@ import sqlite3
 import datetime
 import os
 
-# "/tmp" para Vercel ou normal para localhost
+
 if os.getenv('VERCEL'): 
     DATABASE_NAME = '/tmp/emails.db'
 else:
@@ -11,9 +11,7 @@ else:
 def add_column_if_not_exists(conn, column_name, column_type):
     """Adiciona uma coluna à tabela 'classifications' se ela ainda não existir usando PRAGMA."""
     cursor = conn.cursor()
-    
-    # Verifica as colunas existentes usando PRAGMA table_info
-    # Colunas de interesse estão no índice 1 (nome da coluna)
+
     cursor.execute("PRAGMA table_info(classifications)")
     columns = [info[1] for info in cursor.fetchall()]
 
@@ -24,16 +22,15 @@ def add_column_if_not_exists(conn, column_name, column_type):
             conn.commit()
             print(f"Coluna {column_name} adicionada com sucesso.")
         except sqlite3.OperationalError as e:
-            # Captura erros se o ALTER TABLE falhar por algum motivo (tabela bloqueada, etc.)
+
             print(f"AVISO: Coluna {column_name} já pode existir ou erro de ALTER TABLE: {e}")
 
 def initialize_db():
-    # Cria a tabela de histórico se ela não existir
+    
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
     
-    # 1. Criação da Tabela (se não existir)
-    # Garante a criação com todos os campos mais recentes, mas não a modifica se já existir.
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS classifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,8 +45,7 @@ def initialize_db():
     """)
     conn.commit()
     
-    # 2. Lógica de Migração para Atualizar Schemas Antigos
-    # Chama a função de migração
+
     add_column_if_not_exists(conn, 'key_topic', 'TEXT')
     add_column_if_not_exists(conn, 'sentiment', 'TEXT')
     
@@ -68,7 +64,7 @@ def insert_classification(classification, confidence_score, key_topic, sentiment
     conn.close()
 
 def get_history():
-    # Recupera os últimos 20 registros, incluindo os novos campos.
+
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
     cursor.execute("""
@@ -94,7 +90,7 @@ def get_history():
     return history
 
 def get_raw_history_data():
-    # Recupera TODOS os campos para exportação CSV.
+
 
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
@@ -103,8 +99,7 @@ def get_raw_history_data():
         FROM classifications
         ORDER BY created_at ASC
     """)
-    
-    # Mapeia os dados brutos para dicionários
+   
     raw_history = [
         {
             'id': row[0],

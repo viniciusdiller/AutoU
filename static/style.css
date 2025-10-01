@@ -585,20 +585,17 @@ background-color: var(--success-color);
     margin-top: 0;
     font-size: 1.1rem;
     color: var(--text-color);
-    margin-bottom: 1.5rem; /* Espaço após o título de cada item */
+    margin-bottom: 1.5rem;
 }
 
-/* Garante que o grid de resultados se comporte corretamente dentro do novo cartão */
 .analysis-result-card .results-grid {
     margin-bottom: 1.5rem; 
-    /* Garante que o grid não force o resultado-item de fonte a ser muito grande, se for o caso */
     display: grid; 
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1.25rem;
 }
 
-/* Garante que o botão de copiar use a estilização definida para #copy-btn, 
-   mesmo sendo selecionado por classe agora (caso a função JS mude de novo) */
+
 .copy-btn {
     background-color: #eef2ff;
     color: var(--primary-color);
@@ -616,11 +613,9 @@ background-color: var(--success-color);
     color: var(--primary-color-dark);
 }
 
-/* Garante a estilização do item Fonte */
 .analysis-result-card .result-item {
-    padding: 1rem; /* Um pouco menor para itens dentro da análise individual */
+    padding: 1rem; 
 }
-
 
 
 @media (max-width: 1024px) {

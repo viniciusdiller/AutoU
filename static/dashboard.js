@@ -8,7 +8,7 @@ async function fetchDashboardData() {
     if (!response.ok) {
       throw new Error("Não foi possível carregar os dados do dashboard.");
     }
-    // A resposta agora é um objeto complexo
+
     const data = await response.json();
     processAndRenderCharts(data);
   } catch (error) {
@@ -17,16 +17,12 @@ async function fetchDashboardData() {
 }
 
 function processAndRenderCharts(data) {
-  // O array de dados brutos está agora dentro de 'all_data'
   const allData = data.all_data;
 
   if (!allData || allData.length === 0) {
-    console.log("Nenhum dado de histórico para exibir.");
-    // Opcional: Ocultar ou mostrar uma mensagem nos contêineres dos gráficos
     return;
   }
 
-  // --- Gráfico de Pizza de Classificação (processamento como antes) ---
   const classificationCounts = allData.reduce((acc, item) => {
     const classification = item.classification || "Desconhecido";
     acc[classification] = (acc[classification] || 0) + 1;
@@ -34,7 +30,6 @@ function processAndRenderCharts(data) {
   }, {});
   renderClassificationChart(classificationCounts);
 
-  // --- Lista de Tópicos (processamento como antes) ---
   const keyTopicCounts = allData.reduce((acc, item) => {
     const topic = item.key_topic || "N/A";
     if (topic !== "N/A") {
@@ -47,12 +42,9 @@ function processAndRenderCharts(data) {
   );
   renderTopicsList(sortedTopics);
 
-  // --- NOVO: Renderizar Gráficos de Linha com os dados já processados do backend ---
   renderSentimentOverTimeChart(data.sentiments_over_time);
   renderClassificationOverTimeChart(data.classifications_over_time);
 }
-
-// --- Funções de Renderização (uma para cada gráfico) ---
 
 function renderClassificationChart(counts) {
   const ctx = document.getElementById("classificationChart").getContext("2d");
@@ -92,14 +84,12 @@ function renderTopicsList(sortedTopics) {
     .join("");
 }
 
-// --- NOVAS FUNÇÕES DE RENDERIZAÇÃO ---
-
 function renderSentimentOverTimeChart(data) {
   const ctx = document
     .getElementById("sentimentOverTimeChart")
     .getContext("2d");
 
-  const labels = Object.keys(data).sort(); // Datas ordenadas
+  const labels = Object.keys(data).sort();
 
   const positiveData = labels.map((date) => data[date]["Positivo"] || 0);
   const negativeData = labels.map((date) => data[date]["Negativo"] || 0);

@@ -1,34 +1,46 @@
+const MAX_HISTORY_ITEMS = 20;
+
+function getHistoryFromLocalStorage() {
+  const history = localStorage.getItem("analysisHistory");
+  return history ? JSON.parse(history) : [];
+}
+
+function addHistoryItemToLocalStorage(newItem) {
+  let history = getHistoryFromLocalStorage();
+
+  history.unshift(newItem);
+
+  if (history.length > MAX_HISTORY_ITEMS) {
+    history = history.slice(0, MAX_HISTORY_ITEMS);
+  }
+
+  localStorage.setItem("analysisHistory", JSON.stringify(history));
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-  // Tornando as variáveis de elementos DOM acessíveis em todo o escopo
   const form = document.getElementById("email-form");
   const fileUploadArea = document.querySelector(".file-upload-area");
   const fileInput = document.getElementById("file-upload");
   const emailTextInput = document.getElementById("email-text");
 
-  // Acesso seguro ao HTML original
   const fileUploadP = fileUploadArea.querySelector("p");
   const originalFileUploadHTML = fileUploadP.innerHTML;
 
-  // Variável para armazenar o nome do primeiro arquivo para exibir (necessário para a função global updateFileName)
   let firstFileName = "";
 
-  // Carrega o histórico
   loadHistory();
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    // A função handleFormSubmit agora pode acessar fileInput e emailTextInput
     handleFormSubmit();
   });
 
-  // NOVO: Limpa a seleção de arquivo quando o usuário digita no textarea
   emailTextInput.addEventListener("input", () => {
     if (emailTextInput.value.trim() !== "") {
       restoreFileUploadArea();
     }
   });
 
-  // Lógica para arrastar arquivo
   fileUploadArea.addEventListener("dragover", (event) => {
     event.preventDefault();
     fileUploadArea.classList.add("dragover");
@@ -42,20 +54,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const files = event.dataTransfer.files;
     if (files.length > 0) {
       fileInput.files = files;
-      firstFileName = files[0].name; // Armazena o nome
-      updateFileName(files.length); // Passa a contagem
+      firstFileName = files[0].name;
+      updateFileName(files.length);
       emailTextInput.value = "";
     }
   });
 
-  // Lógica deselecionar arquivo
   fileInput.addEventListener("change", () => {
     if (fileInput.files && fileInput.files.length > 0) {
-      firstFileName = fileInput.files[0].name; // Armazena o nome
-      updateFileName(fileInput.files.length); // Passa a contagem
+      firstFileName = fileInput.files[0].name;
+      updateFileName(fileInput.files.length);
       emailTextInput.value = "";
     } else {
-      // Se o usuário cancelou a seleção, restaura
       restoreFileUploadArea();
     }
   });
@@ -68,7 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Função para limpar o input e restaurar a área de upload
   function restoreFileUploadArea() {
     fileInput.value = "";
     firstFileName = "";
@@ -76,7 +85,6 @@ document.addEventListener("DOMContentLoaded", () => {
     fileUploadArea.classList.remove("file-selected");
   }
 
-  // Função para mostrar o nome/contagem do arquivo e o botão de remover
   function updateFileName(count) {
     if (count === 0) {
       restoreFileUploadArea();
@@ -109,8 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Funções de formulário e resultados
-
 async function handleFormSubmit() {
   const emailText = document.getElementById("email-text").value;
   const fileInput = document.getElementById("file-upload");
@@ -120,12 +126,17 @@ async function handleFormSubmit() {
   const loadingIndicator = document.getElementById("loading-indicator");
   const formData = new FormData();
 
+  let originalContent = "";
+
   if (emailText) {
     formData.append("email_text", emailText);
+    originalContent = emailText;
   } else if (files && files.length > 0) {
-    // CORREÇÃO: Itera sobre a lista de arquivos e usa a chave 'files[]'
     for (let i = 0; i < files.length; i++) {
       formData.append("files[]", files[i]);
+    }
+
+    if (files.length === 1) {
     }
   } else {
     displayError("Por favor, insira um texto ou faça o upload de um arquivo.");
@@ -146,6 +157,18 @@ async function handleFormSubmit() {
     if (!response.ok) {
       throw new Error(responseData.error || "Ocorreu um erro no servidor.");
     }
+
+    if (!Array.isArray(responseData) && responseData.classification) {
+      const historyItem = {
+        classification: responseData.classification,
+        created_at: new Date().toISOString(),
+        email_content:
+          originalContent || `Arquivo: ${responseData.source_filename}`,
+        suggested_response: responseData.suggested_response,
+      };
+      addHistoryItemToLocalStorage(historyItem);
+    }
+
     displayResults(responseData);
     loadHistory();
   } catch (error) {
@@ -168,17 +191,14 @@ function displayResults(data) {
     return;
   }
 
-  // Cria um container para os múltiplos resultados
   let allResultsHTML = `<h2>Resultados da Análise</h2>`;
 
   resultsList.forEach((result, index) => {
-    // Se o resultado for um erro de processamento
     if (result.error) {
       allResultsHTML += `<div id="error-message" style="margin-bottom: 1.5rem; text-align: left;"><strong>Erro de Processamento:</strong> ${result.error}</div>`;
       return;
     }
 
-    // Validação básica
     if (!result || !result.classification) {
       allResultsHTML += `<div id="error-message" style="margin-bottom: 1.5rem; text-align: left;">A IA retornou uma resposta em um formato inesperado para o item ${
         index + 1
@@ -198,10 +218,8 @@ function displayResults(data) {
 
     const sourceFilename = result.source_filename || "Texto Colado";
     const uniqueId = `copy-btn-${index}`;
+    const responseTextareaId = `response-textarea-${index}`;
 
-    let resultsGridHTML = "";
-
-    // Lista de chaves que devem ser exibidas e na ordem
     const keysToShow = [
       "classification",
       "confidence_score",
@@ -209,7 +227,6 @@ function displayResults(data) {
       "sentiment",
     ];
 
-    // Estrutura para exibir um resultado individual
     allResultsHTML += `<div class="analysis-result-card">
         <h3 class="analysis-result-title">Item Analisado: ${sourceFilename}</h3>
 
@@ -218,14 +235,10 @@ function displayResults(data) {
             <span>${sourceFilename}</span>
         </div>
 
-        <div class="results-grid">`; // Abre o results-grid
+        <div class="results-grid">`;
 
-    // Processa os resultados principais na ordem desejada
     for (const key of keysToShow) {
-      // Tenta obter o valor do resultado, caindo para 'N/A' se não existir
       let displayValue = result[key] || "N/A";
-
-      // Verifica se o valor é 0.0, o que pode ocorrer se o Gemini não retornar, e padroniza para N/A
       if (
         typeof displayValue === "number" &&
         displayValue === 0.0 &&
@@ -233,34 +246,22 @@ function displayResults(data) {
       ) {
         displayValue = "N/A";
       }
-
       const label =
         translationMap[key] || key.charAt(0).toUpperCase() + key.slice(1);
-
       if (key === "confidence_score") {
         displayValue = `${(result[key] * 100).toFixed(0)}%`;
       }
-
-      // CORRIGIDO: Adiciona Tópico Chave e Sentimento ao grid
       allResultsHTML += `<div class="result-item"><strong>${label}</strong><span>${displayValue}</span></div>`;
     }
 
-    allResultsHTML += `</div>`; // Fecha o results-grid
-
-    // Restante da Resposta Sugerida
+    allResultsHTML += `</div>`;
     allResultsHTML += `
     <div class="result-item-response">
         <div class="response-header">
             <strong>Resposta Sugerida:</strong>
-            <button id="${uniqueId}" class="copy-btn" data-response="${suggestedResponse.replace(
-      /"/g,
-      "&quot;"
-    )}" title="Copiar resposta">Copiar</button>
+            <button id="${uniqueId}" class="copy-btn" data-target-textarea="${responseTextareaId}" title="Copiar resposta">Copiar</button>
         </div>
-        <p id="suggested-text" style="white-space: pre-wrap;">${suggestedResponse.replace(
-          /\n/g,
-          "<br>"
-        )}</p>
+        <textarea id="${responseTextareaId}" class="suggested-response-textarea">${suggestedResponse}</textarea>
     </div>
 </div>`;
   });
@@ -268,10 +269,12 @@ function displayResults(data) {
   resultsArea.innerHTML = allResultsHTML;
   resultsArea.classList.remove("hidden");
 
-  // Adiciona listeners para os novos botões de cópia dinamicamente
   document.querySelectorAll(".copy-btn").forEach((button) => {
     button.addEventListener("click", () => {
-      const responseText = button.getAttribute("data-response");
+      const textareaId = button.getAttribute("data-target-textarea");
+      const responseTextarea = document.getElementById(textareaId);
+      const responseText = responseTextarea.value;
+
       navigator.clipboard
         .writeText(responseText)
         .then(() => {
@@ -295,23 +298,14 @@ function clearError() {
   errorContainer.innerHTML = "";
 }
 
-// FUNÇÕES PARA O HISTÓRICO
-async function loadHistory() {
-  try {
-    const response = await fetch("/history");
-    if (!response.ok) {
-      throw new Error("Não foi possível carregar o histórico.");
-    }
-    const historyData = await response.json();
-    displayHistory(historyData);
-  } catch (error) {
-    console.error("Erro ao carregar histórico:", error);
-  }
+function loadHistory() {
+  const historyData = getHistoryFromLocalStorage();
+  displayHistory(historyData);
 }
 
 function displayHistory(history) {
   const historyList = document.getElementById("history-list");
-  if (history.length === 0) {
+  if (!history || history.length === 0) {
     historyList.innerHTML = "<p>Nenhuma análise foi feita ainda.</p>";
     return;
   }

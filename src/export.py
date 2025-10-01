@@ -20,7 +20,7 @@ def export_history_to_csv(data):
             }
         )
 
-    # Mapeamento de cabeçalhos de campo
+
     header_mapping = {
         'id': 'ID',
         'created_at': 'Data/Hora',
@@ -40,7 +40,7 @@ def export_history_to_csv(data):
     processed_data = []
     for row in data:
         new_row = row.copy()
-        # Remove quebras de linha ('\n' e '\r') dos campos de texto longo para evitar quebrar a linha do CSV
+
         if new_row.get('email_content'):
             new_row['email_content'] = new_row['email_content'].replace('\n', ' ').replace('\r', ' ')
         
@@ -52,7 +52,7 @@ def export_history_to_csv(data):
     writer.writerows(processed_data)
     
     csv_string = output.getvalue()
-    # Adiciona o BOM (\ufeff) no início da string
+
     response_content = '\ufeff' + csv_string
     
     return Response(

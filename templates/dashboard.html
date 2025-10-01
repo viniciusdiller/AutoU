@@ -14,7 +14,6 @@
       href="{{ url_for('static', filename='favicon.jpg') }}"
     />
     <style>
-      /* Estilos específicos do Dashboard */
       .dashboard-container {
         width: 100%;
         max-width: 1200px;
@@ -26,9 +25,9 @@
         gap: 2rem;
         align-items: flex-start;
       }
-      /* NOVO: Estilo para cards que ocupam a largura total */
+
       .full-width-card {
-        grid-column: 1 / -1; /* Ocupa todas as colunas do grid */
+        grid-column: 1 / -1;
       }
       .dashboard-card {
         background: var(--card-background);
