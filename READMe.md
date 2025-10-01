@@ -48,7 +48,7 @@ Siga os passos abaixo para ter o projeto rodando na sua máquina.
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/viniciusdiller/AutoU](https://github.com/viniciusdiller/AutoU)
+    git clone https://github.com/viniciusdiller/AutoU
     cd AutoU
     ```
 
@@ -102,3 +102,4 @@ Na versão hospedada na Vercel, o sistema de arquivos do servidor é temporário
     2.  Ele será **perdido** se você limpar os dados de navegação (cache, cookies, etc.) do seu navegador.
 
 A funcionalidade de **Exportar (CSV)** sempre utilizará os dados do banco de dados do servidor. Portanto, na Vercel, ela exportará apenas as análises feitas na sessão ativa do servidor.
+
