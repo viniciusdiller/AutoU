@@ -1,18 +1,45 @@
-document.addEventListener("DOMContentLoaded", () => {
-  fetchDashboardData();
+document.addEventListener("DOMContentLoaded", async () => {
+  // Primeiro, detecta o ambiente
+  let isVercel = false;
+  try {
+    const response = await fetch("/api/environment");
+    const data = await response.json();
+    isVercel = data.is_vercel;
+  } catch (error) {
+    console.error(
+      "Não foi possível detectar o ambiente, assumindo 'Local'.",
+      error
+    );
+  }
+
+  // Agora, busca os dados da fonte correta
+  fetchDashboardData(isVercel);
 });
 
-async function fetchDashboardData() {
+async function fetchDashboardData(isVercelEnv) {
+  let data = {}; // Usamos um objeto para manter a estrutura do backend
   try {
-    const response = await fetch("/dashboard/data");
-    if (!response.ok) {
-      throw new Error("Não foi possível carregar os dados do dashboard.");
+    if (isVercelEnv) {
+      // Se estiver online, pega os dados do LocalStorage
+      console.log("Dashboard: Carregando dados do LocalStorage.");
+      const localData = JSON.parse(
+        localStorage.getItem("analysisHistory") || "[]"
+      );
+      // Simula a estrutura de dados do backend para reutilizar o código dos gráficos
+      data = { all_data: localData };
+    } else {
+      // Se estiver local, busca do banco de dados pela API
+      console.log("Dashboard: Carregando dados do Banco de Dados (API).");
+      const response = await fetch("/dashboard/data");
+      if (!response.ok)
+        throw new Error("Falha ao buscar dados do dashboard do servidor.");
+      const serverData = await response.json();
+      // A resposta do servidor já vem no formato { all_data: [...] }
+      data = serverData;
     }
-
-    const data = await response.json();
     processAndRenderCharts(data);
   } catch (error) {
-    console.error("Erro ao buscar dados do dashboard:", error);
+    console.error("Erro ao carregar dados do dashboard:", error);
   }
 }
 

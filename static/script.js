@@ -1,34 +1,67 @@
-const MAX_HISTORY_ITEMS = 20;
+let IS_VERCEL_ENV = false;
 
-function getHistoryFromLocalStorage() {
-  const history = localStorage.getItem("analysisHistory");
-  return history ? JSON.parse(history) : [];
+// Funções para gerenciar o histórico no LocalStorage (usado apenas online)
+const MAX_HISTORY_ITEMS = 20;
+const getHistoryFromLocalStorage = () =>
+  JSON.parse(localStorage.getItem("analysisHistory") || "[]");
+const addHistoryItemToLocalStorage = (newItem) => {
+  let history = getHistoryFromLocalStorage();
+  history.unshift(newItem); // Adiciona no início
+  if (history.length > MAX_HISTORY_ITEMS) {
+    history = history.slice(0, MAX_HISTORY_ITEMS); // Limita o tamanho
+  }
+  localStorage.setItem("analysisHistory", JSON.stringify(history));
+};
+
+// Função principal que decide de onde carregar o histórico
+async function loadHistory() {
+  let historyData = [];
+  if (IS_VERCEL_ENV) {
+    // Se estiver online, usa o LocalStorage
+    historyData = getHistoryFromLocalStorage();
+  } else {
+    // Se estiver local, busca do banco de dados via API
+    try {
+      const response = await fetch("/history");
+      if (!response.ok)
+        throw new Error("Falha ao buscar histórico do servidor.");
+      historyData = await response.json();
+    } catch (error) {
+      console.error(error);
+      displayHistory([]);
+      return;
+    }
+  }
+  displayHistory(historyData);
 }
 
-function addHistoryItemToLocalStorage(newItem) {
-  let history = getHistoryFromLocalStorage();
-
-  history.unshift(newItem);
-
-  if (history.length > MAX_HISTORY_ITEMS) {
-    history = history.slice(0, MAX_HISTORY_ITEMS);
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const response = await fetch("/api/environment");
+    const data = await response.json();
+    IS_VERCEL_ENV = data.is_vercel;
+    console.log(
+      `Ambiente detectado: ${IS_VERCEL_ENV ? "Vercel (Online)" : "Local"}`
+    );
+  } catch (error) {
+    console.error(
+      "Não foi possível detectar o ambiente, assumindo 'Local'.",
+      error
+    );
+    IS_VERCEL_ENV = false;
   }
 
-  localStorage.setItem("analysisHistory", JSON.stringify(history));
-}
+  loadHistory();
 
-document.addEventListener("DOMContentLoaded", () => {
+  // --- INÍCIO DA CORREÇÃO ---
+  // Todas as variáveis e listeners para o upload de arquivos foram restaurados aqui.
   const form = document.getElementById("email-form");
   const fileUploadArea = document.querySelector(".file-upload-area");
   const fileInput = document.getElementById("file-upload");
   const emailTextInput = document.getElementById("email-text");
-
   const fileUploadP = fileUploadArea.querySelector("p");
   const originalFileUploadHTML = fileUploadP.innerHTML;
-
   let firstFileName = "";
-
-  loadHistory();
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -90,12 +123,9 @@ document.addEventListener("DOMContentLoaded", () => {
       restoreFileUploadArea();
       return;
     }
-
     fileUploadArea.classList.add("file-selected");
-
     const nameDisplay =
       count === 1 ? firstFileName : `${count} arquivos selecionados`;
-
     fileUploadP.innerHTML = `
             <div class="file-selected-container">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
@@ -115,6 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+  // --- FIM DA CORREÇÃO ---
 });
 
 async function handleFormSubmit() {
@@ -126,7 +157,7 @@ async function handleFormSubmit() {
   const loadingIndicator = document.getElementById("loading-indicator");
   const formData = new FormData();
 
-  let originalContent = "";
+  let originalContent = document.getElementById("email-text").value;
 
   if (emailText) {
     formData.append("email_text", emailText);
@@ -134,9 +165,6 @@ async function handleFormSubmit() {
   } else if (files && files.length > 0) {
     for (let i = 0; i < files.length; i++) {
       formData.append("files[]", files[i]);
-    }
-
-    if (files.length === 1) {
     }
   } else {
     displayError("Por favor, insira um texto ou faça o upload de um arquivo.");
@@ -157,16 +185,19 @@ async function handleFormSubmit() {
     if (!response.ok) {
       throw new Error(responseData.error || "Ocorreu um erro no servidor.");
     }
-
-    if (!Array.isArray(responseData) && responseData.classification) {
-      const historyItem = {
-        classification: responseData.classification,
-        created_at: new Date().toISOString(),
-        email_content:
-          originalContent || `Arquivo: ${responseData.source_filename}`,
-        suggested_response: responseData.suggested_response,
-      };
-      addHistoryItemToLocalStorage(historyItem);
+    if (IS_VERCEL_ENV) {
+      if (!Array.isArray(responseData) && responseData.classification) {
+        const historyItem = {
+          classification: responseData.classification,
+          created_at: new Date().toISOString(),
+          email_content:
+            originalContent || `Arquivo: ${responseData.source_filename}`,
+          suggested_response: responseData.suggested_response,
+          key_topic: responseData.key_topic,
+          sentiment: responseData.sentiment,
+        };
+        addHistoryItemToLocalStorage(historyItem);
+      }
     }
 
     displayResults(responseData);
@@ -198,7 +229,6 @@ function displayResults(data) {
       allResultsHTML += `<div id="error-message" style="margin-bottom: 1.5rem; text-align: left;"><strong>Erro de Processamento:</strong> ${result.error}</div>`;
       return;
     }
-
     if (!result || !result.classification) {
       allResultsHTML += `<div id="error-message" style="margin-bottom: 1.5rem; text-align: left;">A IA retornou uma resposta em um formato inesperado para o item ${
         index + 1
@@ -215,10 +245,12 @@ function displayResults(data) {
 
     const suggestedResponse =
       result.suggested_response || "Nenhuma resposta necessária.";
-
     const sourceFilename = result.source_filename || "Texto Colado";
     const uniqueId = `copy-btn-${index}`;
-    const responseTextareaId = `response-textarea-${index}`;
+
+    allResultsHTML += `<div class="analysis-result-card">
+        <h3 class="analysis-result-title">Item Analisado: ${sourceFilename}</h3>
+        <div class="results-grid">`;
 
     const keysToShow = [
       "classification",
@@ -227,31 +259,20 @@ function displayResults(data) {
       "sentiment",
     ];
 
-    allResultsHTML += `<div class="analysis-result-card">
-        <h3 class="analysis-result-title">Item Analisado: ${sourceFilename}</h3>
-
-        <div class="result-item" style="grid-column: 1 / -1; margin-bottom: 1rem;">
-            <strong>Fonte:</strong>
-            <span>${sourceFilename}</span>
-        </div>
-
-        <div class="results-grid">`;
-
     for (const key of keysToShow) {
       let displayValue = result[key] || "N/A";
-      if (
-        typeof displayValue === "number" &&
-        displayValue === 0.0 &&
-        key !== "confidence_score"
-      ) {
-        displayValue = "N/A";
-      }
       const label =
         translationMap[key] || key.charAt(0).toUpperCase() + key.slice(1);
+
       if (key === "confidence_score") {
         displayValue = `${(result[key] * 100).toFixed(0)}%`;
       }
-      allResultsHTML += `<div class="result-item"><strong>${label}</strong><span>${displayValue}</span></div>`;
+
+      if (key === "classification") {
+        allResultsHTML += `<div class="result-item"><strong>${label}</strong><span class="history-category category-${displayValue.toLowerCase()}">${displayValue}</span></div>`;
+      } else {
+        allResultsHTML += `<div class="result-item"><strong>${label}</strong><span>${displayValue}</span></div>`;
+      }
     }
 
     allResultsHTML += `</div>`;
@@ -259,9 +280,15 @@ function displayResults(data) {
     <div class="result-item-response">
         <div class="response-header">
             <strong>Resposta Sugerida:</strong>
-            <button id="${uniqueId}" class="copy-btn" data-target-textarea="${responseTextareaId}" title="Copiar resposta">Copiar</button>
+            <button id="${uniqueId}" class="copy-btn" data-response="${suggestedResponse.replace(
+      /"/g,
+      "&quot;"
+    )}" title="Copiar resposta">Copiar</button>
         </div>
-        <textarea id="${responseTextareaId}" class="suggested-response-textarea">${suggestedResponse}</textarea>
+        <p class="suggested-response-text">${suggestedResponse.replace(
+          /\n/g,
+          "<br>"
+        )}</p>
     </div>
 </div>`;
   });
@@ -271,10 +298,7 @@ function displayResults(data) {
 
   document.querySelectorAll(".copy-btn").forEach((button) => {
     button.addEventListener("click", () => {
-      const textareaId = button.getAttribute("data-target-textarea");
-      const responseTextarea = document.getElementById(textareaId);
-      const responseText = responseTextarea.value;
-
+      const responseText = button.getAttribute("data-response");
       navigator.clipboard
         .writeText(responseText)
         .then(() => {
@@ -296,11 +320,6 @@ function displayError(message) {
 function clearError() {
   const errorContainer = document.getElementById("error-message-container");
   errorContainer.innerHTML = "";
-}
-
-function loadHistory() {
-  const historyData = getHistoryFromLocalStorage();
-  displayHistory(historyData);
 }
 
 function displayHistory(history) {

@@ -125,6 +125,12 @@ def index():
     initialize_db()
     return render_template('index.html')
 
+@app.route('/api/environment')
+def get_environment():
+    """Informa ao frontend se o ambiente é Vercel (online) ou local."""
+    is_vercel = True if os.getenv('VERCEL') else False
+    return jsonify({'is_vercel': is_vercel})
+
 @app.route('/classify', methods=['POST'])
 def classify_email():
     """Recebe o e-mail (texto) ou a lista de arquivos, classifica com a IA, salva e retorna os resultados."""
