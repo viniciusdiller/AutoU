@@ -1,0 +1,24 @@
+# Arquivo de Chaves de API e Variáveis de Ambiente
+# Nunca envie este arquivo para o repositório!
+.env
+
+# Pasta do Ambiente Virtual do Python
+# As dependências devem ser listadas no requirements.txt
+venv/
+/venv/
+
+# Pasta de dados do NLTK
+# Estes dados podem ser baixados novamente durante a configuração
+nltk_data/
+
+# Arquivos de cache e compilados do Python
+__pycache__/
+*.pyc
+
+# Arquivos de cache do editor de código
+.vscode/
+.idea/
+
+# Arquivos de banco de dados locais (SQLite)
+emails.db
+*.db
